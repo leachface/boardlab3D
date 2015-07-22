@@ -1,10 +1,16 @@
 function BLViewerAPI( cartCallback )
 {
-    console.log( "BLViewerAPI v1.0")
+    console.log( "BLViewerAPI v1.1" );
 
     if (!Detector.webgl) Detector.addGetWebGLMessage();
 
-    var container, scene, camera, renderer, orbit, pointLight1, pointLight2;
+    var container, scene, camera, renderer, orbit, pointLight1, pointLight2, currentConfig = null, finObject;
+    var currentTemplate, currentSystem, currentFoil, currentMaterial;
+    var finDepth = 0;
+    var finBase = 0;
+    var finRake = 0;
+    var finRakeYRef = 0;
+    var matLib = [];
 
     function animate()
     {
@@ -42,30 +48,84 @@ function BLViewerAPI( cartCallback )
             container.style.backgroundImage = "url(UI/gradient.png)";
     }
 
-    function setupObject( importObject, isSystem ) {
-        var blueMat = new THREE.MeshPhongMaterial({
-            color: 0x0086CE,
-            specular: 0x0C0C0C,
-            shininess: 40,
-            reflectivity: 0.8
-        });
-
-        var greyMat = new THREE.MeshPhongMaterial({
-            color: 0xAAAAAA
-        });
-
+    function setupObject( importObject ) {
         importObject.traverse(function (object) {
             if (object instanceof THREE.Mesh) {
                 console.log( object );
-                if( isSystem )
-                    object.material = greyMat;
-                else
-                    object.material = blueMat;
+                object.material = matLib[ currentMaterial ];
             }
         });
     }
 
-    function LoadOBJ( modelName, isSystem ) {
+    function getFinMetrics()
+    {
+        var bb = new THREE.Box3();
+        bb.setFromObject( finObject );
+
+        finObject.geometry.verticesBackup = [];
+
+        var baseMin = 1000;
+        var baseMax = -1000;
+        var widthMin = 1000;
+        var widthMax = -1000;
+        for( var vertexIdx = 0; vertexIdx < finObject.geometry.vertices.length; vertexIdx++ )
+        {
+            var v = finObject.geometry.vertices[ vertexIdx ];
+            finObject.geometry.verticesBackup[ vertexIdx ] = v.clone();
+            if( v.x > widthMax )
+            {
+                widthMax = v.x;
+                finRakeYRef = v.y;
+            }
+            if( v.x < widthMin ) widthMin = v.x;
+            if( Math.abs( v.y - bb.max.y ) < 0.01 )
+            {
+                if( v.x > baseMax ) baseMax = v.x;
+                if( v.x < baseMin ) baseMin = v.x;
+            }
+        }
+
+        finDepth = bb.max.y - bb.min.y;
+        finBase = (baseMax - baseMin);
+        finRake = (widthMax - widthMin) - finBase;
+
+        document.getElementById("depthSLIDER").value = 50;
+        document.getElementById("baseSLIDER").value = 50;
+        document.getElementById("rakeSLIDER").value = 50;
+
+        document.getElementById("depthINPUT").value = finDepth.toFixed( 2 );
+        document.getElementById("baseINPUT").value = finBase.toFixed( 2 );
+        document.getElementById("rakeINPUT").value = finRake.toFixed( 2 );
+    }
+
+    function setFinShape()
+    {
+        var depthScale = 1 + (document.getElementById("depthSLIDER").value - 50) / 100;
+        var baseScale = 1 + (document.getElementById("baseSLIDER").value - 50) / 100;
+        var rakeScale = (document.getElementById("rakeSLIDER").value - 50) / 50;
+
+        for( var vertexIdx = 0; vertexIdx < finObject.geometry.vertices.length; vertexIdx++ )
+        {
+            var vOrigin = finObject.geometry.verticesBackup[vertexIdx];
+            var v = finObject.geometry.vertices[vertexIdx];
+            // Set depth
+            v.y = vOrigin.y * depthScale;
+            // Set base
+            var rakeCoefficient = 1.0 - (Math.abs(finDepth - vOrigin.y) / finDepth);
+            v.x = vOrigin.x * baseScale - rakeScale * rakeCoefficient;
+        }
+        finObject.geometry.verticesNeedUpdate = true;
+
+        // Update metrics display
+        var newFinDepth = finDepth * depthScale;
+        var newFinBase = finBase * baseScale;
+        var newFinRake = finRake * baseScale * rakeScale;
+        document.getElementById("depthINPUT").value = newFinDepth.toFixed( 2 );
+        document.getElementById("baseINPUT").value = newFinBase.toFixed( 2 );
+//        document.getElementById("rakeINPUT").value = newFinRake.toFixed( 2 );
+    }
+
+    function LoadOBJ( modelName, isFin ) {
         // model
         var onProgress = function (xhr) {
             if (xhr.lengthComputable) {
@@ -78,12 +138,32 @@ function BLViewerAPI( cartCallback )
 
         var loader = new THREE.OBJLoader();
         loader.load('models/' + modelName + '.obj', function (object) {
-            scene.add(object);
+            currentConfig.add(object);
             object.position.x = -3;
             object.position.y = 2;
             object.updateMatrix();
-            setupObject( object, isSystem );
+            setupObject( object );
+            if( isFin ) {
+                finObject = object.children[ 0 ];
+                finObject.geometry = new THREE.Geometry().fromBufferGeometry( finObject.geometry );
+                getFinMetrics();
+            }
         }, onProgress, onError);
+    }
+
+    function loadCurrentConfig()
+    {
+        // Clear current config
+        if( currentConfig )
+            scene.remove( currentConfig );
+
+        // Add config group
+        currentConfig = new THREE.Group();
+        scene.add( currentConfig );
+
+        LoadOBJ( currentTemplate + currentFoil, true );
+        if( currentSystem != "None" )
+            LoadOBJ( currentSystem );
     }
 
     function onWindowResize() {
@@ -103,34 +183,38 @@ function BLViewerAPI( cartCallback )
         // Add template drop list
         var templateDIV = document.createElement('div');
         templateDIV.className = "menu-item";
-        templateDIV.innerHTML = '' +
+        templateDIV.innerHTML = 'TEMPLATE ' +
             '<select id="templateSELECT">'+
                 '<option value="Shortboard" selected>Shortboard</option>' +
                 '<option value="Longboard">Longboard</option>' +
-                '<option value="Knub">Knub</option>' +
+                '<option value="Nub">Knub</option>' +
                 '<option value="Pilot">Pilot</option>' +
             '</select>';
         menuArea.appendChild( templateDIV );
-        document.getElementById("templateSELECT").onchange = function( sel )
+        var templateSELECT = document.getElementById("templateSELECT");
+        templateSELECT.onchange = function( sel )
         {
-            var selectedTemplate = this.options[this.selectedIndex].value;
-        }
+            currentTemplate = this.options[this.selectedIndex].value;
+            loadCurrentConfig();
+        };
+        currentTemplate = templateSELECT.options[ templateSELECT.selectedIndex ].value;
 
         // Add system drop list
         var systemDIV = document.createElement('div');
         systemDIV.className = "menu-item";
-        systemDIV.innerHTML = '' +
+        systemDIV.innerHTML = 'SYSTEM ' +
         '<select id="systemSELECT">'+
             '<option value="FCSSystem">FCS</option>' +
             '<option value="FuturesSystem" selected>Futures</option>' +
             '<option value="StandardSystem">Standard</option>' +
-            '<option value="None">None (glassed on)”</option>' +
+            '<option value="None">None (glassed on)</option>' +
         '</select>';
         menuArea.appendChild( systemDIV );
-        document.getElementById("systemSELECT").onchange = function( sel )
+        var systemSELECT = document.getElementById("systemSELECT");
+        systemSELECT.onchange = function( sel )
         {
-            var selectedSystem = this.options[this.selectedIndex].value;
-            if( selectedSystem == "None" )
+            currentSystem = this.options[this.selectedIndex].value;
+            if( currentSystem == "None" )
                 document.getElementById("materialSELECT").options[ 2 ].disabled = false;
             else {
                 document.getElementById("materialSELECT").options[ 2 ].disabled = true;
@@ -141,37 +225,47 @@ function BLViewerAPI( cartCallback )
                     document.getElementById("materialSELECT").options[ 0 ].selected = true;
                 }
             }
-        }
+            loadCurrentConfig();
+        };
+        currentSystem = systemSELECT.options[ systemSELECT.selectedIndex ].value;
 
         // Add foil drop list
         var foilDIV = document.createElement('div');
         foilDIV.className = "menu-item";
-        foilDIV.innerHTML = '' +
+        foilDIV.innerHTML = 'FOIL ' +
         '<select id="foilSELECT">'+
         '<option value="Center" selected>Center</option>' +
         '<option value="Left">Left</option>' +
         '<option value="Right">Right</option>' +
         '</select>';
         menuArea.appendChild( foilDIV );
-        document.getElementById("foilSELECT").onchange = function( sel )
+
+        var foilSELECT = document.getElementById("foilSELECT");
+        foilSELECT.onchange = function( sel )
         {
-            var selectedFoil = this.options[this.selectedIndex].value;
-        }
+            currentFoil = this.options[this.selectedIndex].value;
+            loadCurrentConfig();
+        };
+        currentFoil = foilSELECT.options[ foilSELECT.selectedIndex ].value;
 
         // Add material drop list
         var materialDIV = document.createElement('div');
         materialDIV.className = "menu-item";
-        materialDIV.innerHTML = '' +
+        materialDIV.innerHTML = 'MATERIAL ' +
         '<select id="materialSELECT">'+
         '<option value="G10" selected>G10</option>' +
         '<option value="HDME">HDME</option>' +
-        '<option value="Baltic Birch" disabled>Baltic Birch</option>' +
+        '<option value="BalticBirch" disabled>Baltic Birch</option>' +
         '</select>';
         menuArea.appendChild( materialDIV );
-        document.getElementById("materialSELECT").onchange = function( sel )
+
+        var materialSELECT = document.getElementById("materialSELECT");
+        materialSELECT.onchange = function( sel )
         {
-            var selectedMaterial = this.options[this.selectedIndex].value;
-        }
+            currentMaterial = this.options[this.selectedIndex].value;
+            loadCurrentConfig();
+        };
+        currentMaterial = materialSELECT.options[ materialSELECT.selectedIndex ].value;
 
         // Add SIZE settings
         var sizeDIV = document.createElement('div');
@@ -182,26 +276,40 @@ function BLViewerAPI( cartCallback )
         var depthDIV = document.createElement('div');
         depthDIV.className = "menu-item";
         depthDIV.innerHTML = 'DEPTH' +
-        '<input type="range"  min="0" max="100" />';
+        '<input id="depthSLIDER" type="range"  min="0" max="100" value="50" class="menu-slider"/>' +
+        '<input id="depthINPUT" type="text" class="menu-text" readonly/>';
         menuArea.appendChild( depthDIV );
-
-        var rakeDIV = document.createElement('div');
-        rakeDIV.className = "menu-item";
-        rakeDIV.innerHTML = 'RAKE' +
-        '<input type="range"  min="0" max="100" />';
-        menuArea.appendChild( rakeDIV );
+        document.getElementById("depthSLIDER").oninput = function(e)
+        {
+            setFinShape();
+        };
 
         var baseDIV = document.createElement('div');
         baseDIV.className = "menu-item";
         baseDIV.innerHTML = 'BASE' +
-        '<input type="range"  min="0" max="100" />';
+        '<input id="baseSLIDER" type="range"  min="0" max="100" value="50" class="menu-slider"/>' +
+        '<input id="baseINPUT" type="text" class="menu-text" readonly/>';
         menuArea.appendChild( baseDIV );
+        document.getElementById("baseSLIDER").oninput = function(e)
+        {
+            setFinShape();
+        };
+
+        var rakeDIV = document.createElement('div');
+        rakeDIV.className = "menu-item";
+        rakeDIV.innerHTML = 'RAKE' +
+        '<input id="rakeSLIDER" type="range"  min="0" max="100" value="50" class="menu-slider"/>' +
+        '<input id="rakeINPUT" type="text" class="menu-text" readonly/>';
+        menuArea.appendChild( rakeDIV );
+        document.getElementById("rakeSLIDER").oninput = function(e)
+        {
+            setFinShape();
+        };
 
         var areaDIV = document.createElement('div');
         areaDIV.className = "menu-item";
         areaDIV.innerHTML = 'AREA';
         menuArea.appendChild( areaDIV );
-
 
         // Add ADD TO CART button
         var footerDIV = document.createElement('div');
@@ -255,8 +363,29 @@ function BLViewerAPI( cartCallback )
         pointLight2 = new THREE.PointLight(0xFFFFFF, globalLighting*0.5, 0);
         scene.add(pointLight2);
 
-        LoadOBJ( "ShortboardCenterFin" );
-        LoadOBJ( "FuturesSystem", true );
+        // Build materials library
+        matLib[ "G10" ] = new THREE.MeshPhongMaterial({
+            color: 0x66B798,
+            specular: 0x0C0C0C,
+            shininess: 20,
+            reflectivity: 0.2
+        });
+
+        matLib[ "HDME" ] = new THREE.MeshPhongMaterial({
+            color: 0xAAAAAA,
+            specular: 0x0C0C0C,
+            shininess: 80,
+            reflectivity: 0.8
+        });
+
+        matLib[ "BalticBirch" ] = new THREE.MeshPhongMaterial({
+            color: 0xEBCD91,
+            specular: 0x0C0C0C,
+            shininess: 10,
+            reflectivity: 0.2
+        });
+
+        loadCurrentConfig();
 
         window.addEventListener( 'resize', onWindowResize, false );
         onWindowResize();

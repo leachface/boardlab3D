@@ -19,7 +19,7 @@ body {
     position: absolute;
     top: 20px;
     right: 10px;
-    width: 200px;
+    width: 280px;
 }
 
 .menu-item
@@ -31,13 +31,23 @@ body {
 
 .menu-item select
 {
-    width: 100%;
+    position: absolute;
+    left: 80px;
+    width: 140px;
 }
 
-.menu-item input
+.menu-slider
 {
     position: absolute;
-    left: 50px;
+    left: 80px;
+    width: 140px;
+}
+
+.menu-text
+{
+    position: absolute;
+    left: 230px;
+    width: 30px;
 }
 
 .menu-title
