@@ -1,6 +1,6 @@
 function BLViewerAPI( cartCallback )
 {
-    console.log( "BLViewerAPI v1.1" );
+    console.log( "BLViewerAPI v1.2" );
 
     if (!Detector.webgl) Detector.addGetWebGLMessage();
 
@@ -9,7 +9,7 @@ function BLViewerAPI( cartCallback )
     var finDepth = 0;
     var finBase = 0;
     var finRake = 0;
-    var finRakeYRef = 0;
+    var finRakePoint = null;
     var matLib = [];
 
     function animate()
@@ -59,8 +59,8 @@ function BLViewerAPI( cartCallback )
 
     function getFinMetrics()
     {
-        var bb = new THREE.Box3();
-        bb.setFromObject( finObject );
+        finObject.geometry.computeBoundingBox();
+        var bb = finObject.geometry.boundingBox;
 
         finObject.geometry.verticesBackup = [];
 
@@ -75,7 +75,7 @@ function BLViewerAPI( cartCallback )
             if( v.x > widthMax )
             {
                 widthMax = v.x;
-                finRakeYRef = v.y;
+                finRakePoint = v.clone();
             }
             if( v.x < widthMin ) widthMin = v.x;
             if( Math.abs( v.y - bb.max.y ) < 0.01 )
@@ -98,11 +98,53 @@ function BLViewerAPI( cartCallback )
         document.getElementById("rakeINPUT").value = finRake.toFixed( 2 );
     }
 
+    function updateFinMetrics()
+    {
+        finObject.geometry.computeBoundingBox();
+        var bb = finObject.geometry.boundingBox;
+
+        var baseMin = 1000;
+        var baseMax = -1000;
+        var widthMin = 1000;
+        var widthMax = -1000;
+        for( var vertexIdx = 0; vertexIdx < finObject.geometry.vertices.length; vertexIdx++ )
+        {
+            var v = finObject.geometry.vertices[ vertexIdx ];
+            if( v.x > widthMax ) widthMax = v.x;
+            if( v.x < widthMin ) widthMin = v.x;
+            if( Math.abs( v.y - bb.max.y ) < 0.01 )
+            {
+                if( v.x > baseMax ) baseMax = v.x;
+                if( v.x < baseMin ) baseMin = v.x;
+            }
+        }
+
+        var newFinDepth = bb.max.y - bb.min.y;
+        var newFinBase = (baseMax - baseMin);
+        var newFinRake = (widthMax - widthMin) - newFinBase;
+
+        document.getElementById("depthINPUT").value = newFinDepth.toFixed( 2 );
+        document.getElementById("baseINPUT").value = newFinBase.toFixed( 2 );
+        document.getElementById("rakeINPUT").value = newFinRake.toFixed( 2 );
+    }
+
+    function computeRakeCoef( y )
+    {
+        return( 1.0 - (finDepth - Math.abs(y)) / finDepth );
+    }
+
     function setFinShape()
     {
         var depthScale = 1 + (document.getElementById("depthSLIDER").value - 50) / 100;
         var baseScale = 1 + (document.getElementById("baseSLIDER").value - 50) / 100;
-        var rakeScale = (document.getElementById("rakeSLIDER").value - 50) / 50;
+        var rakeScale = 1 + (document.getElementById("rakeSLIDER").value - 50) / 50;
+        var targetRake = finRake * rakeScale;
+        var targetRakeX = finBase * baseScale + targetRake;
+
+        // Compute scaled rake point
+        var rakeCoefficient = computeRakeCoef(finRakePoint.y);
+        var scaledRakeX = finRakePoint.x * baseScale;
+        var rakeOffset = (targetRakeX - scaledRakeX) / rakeCoefficient;
 
         for( var vertexIdx = 0; vertexIdx < finObject.geometry.vertices.length; vertexIdx++ )
         {
@@ -111,18 +153,12 @@ function BLViewerAPI( cartCallback )
             // Set depth
             v.y = vOrigin.y * depthScale;
             // Set base
-            var rakeCoefficient = 1.0 - (Math.abs(finDepth - vOrigin.y) / finDepth);
-            v.x = vOrigin.x * baseScale - rakeScale * rakeCoefficient;
+            rakeCoefficient = computeRakeCoef(vOrigin.y);
+            v.x = vOrigin.x * baseScale + rakeOffset * rakeCoefficient;
         }
         finObject.geometry.verticesNeedUpdate = true;
 
-        // Update metrics display
-        var newFinDepth = finDepth * depthScale;
-        var newFinBase = finBase * baseScale;
-        var newFinRake = finRake * baseScale * rakeScale;
-        document.getElementById("depthINPUT").value = newFinDepth.toFixed( 2 );
-        document.getElementById("baseINPUT").value = newFinBase.toFixed( 2 );
-//        document.getElementById("rakeINPUT").value = newFinRake.toFixed( 2 );
+        updateFinMetrics();
     }
 
     function LoadOBJ( modelName, isFin ) {

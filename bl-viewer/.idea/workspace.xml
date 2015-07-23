@@ -47,7 +47,7 @@
       <file leaf-file-name="BLViewerAPI.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/BLViewerAPI.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.066797644" vertical-offset="0" max-vertical-offset="6851">
+            <state vertical-scroll-proportion="0.06367041" vertical-offset="0" max-vertical-offset="7463">
               <caret line="2" column="34" selection-start-line="2" selection-start-column="18" selection-end-line="2" selection-end-column="34" />
               <folding />
             </state>
@@ -107,7 +107,6 @@
       <sortByType />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -142,6 +141,7 @@
           </PATH>
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -158,10 +158,14 @@
     </key>
   </component>
   <component name="RunManager" selected="JavaScript Debug.viewer">
+    <configuration default="true" type="DartCommandLineRunConfigurationType" factoryName="Dart Command Line Application">
+      <method />
+    </configuration>
     <configuration default="true" type="DartUnitRunConfigurationType" factoryName="DartUnit">
       <method />
     </configuration>
-    <configuration default="true" type="DartCommandLineRunConfigurationType" factoryName="Dart Command Line Application">
+    <configuration default="true" type="JavaScriptTestRunnerKarma" factoryName="Karma" config-file="">
+      <envs />
       <method />
     </configuration>
     <configuration default="true" type="JSTestDriver:ConfigurationType" factoryName="JsTestDriver">
@@ -169,10 +173,6 @@
       <setting name="settingsFile" value="" />
       <setting name="serverType" value="INTERNAL" />
       <setting name="preferredDebugBrowser" value="Chrome" />
-      <method />
-    </configuration>
-    <configuration default="true" type="JavaScriptTestRunnerKarma" factoryName="Karma" config-file="">
-      <envs />
       <method />
     </configuration>
     <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug">
@@ -265,6 +265,38 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/viewer.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="272" max-vertical-offset="561">
+          <caret line="16" column="0" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/BLViewer.css">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="34" max-vertical-offset="1224">
+          <caret line="22" column="1" selection-start-line="22" selection-start-column="1" selection-end-line="22" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/BLViewerAPI.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="7463">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/three.js/examples/js/loaders/OBJLoader.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="5734" max-vertical-offset="6426">
+          <caret line="358" column="39" selection-start-line="358" selection-start-column="39" selection-end-line="358" selection-end-column="45" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/viewer.html">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="272" max-vertical-offset="561">
@@ -418,7 +450,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/BLViewerAPI.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.066797644" vertical-offset="0" max-vertical-offset="6851">
+        <state vertical-scroll-proportion="0.06367041" vertical-offset="0" max-vertical-offset="7463">
           <caret line="2" column="34" selection-start-line="2" selection-start-column="18" selection-end-line="2" selection-end-column="34" />
           <folding />
         </state>
