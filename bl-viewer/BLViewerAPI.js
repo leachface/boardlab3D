@@ -1,6 +1,14 @@
 function BLViewerAPI( cartCallback )
 {
-    console.log( "BLViewerAPI v1.2" );
+    var templatesLib = [];
+    templatesLib[ "Shortboard" ] = {name:"Shortboard", center:true, left:true, right:true, selected:true };
+    templatesLib[ "Retro" ] = {name:"Retro", center:true, left:true, right:true };
+    templatesLib[ "Longboard1" ] = {name:"Longboard 1", center:true };
+    templatesLib[ "Longboard2" ] = {name:"Longboard 2", center:true };
+    templatesLib[ "Pilot" ] = {name:"Pilot", center:true };
+    templatesLib[ "Nub" ] = {name:"Nub", center:true, left:true, right:true };
+
+    console.log( "BLViewerAPI v1.3" );
 
     if (!Detector.webgl) Detector.addGetWebGLMessage();
 
@@ -57,6 +65,26 @@ function BLViewerAPI( cartCallback )
         });
     }
 
+    function computeProjectedFinArea()
+    {
+        var finArea = 0;
+        for( var faceIdx = 0; faceIdx < finObject.geometry.faces.length; faceIdx++ )
+        {
+            var v0 = finObject.geometry.vertices[ finObject.geometry.faces[ faceIdx].a ];
+            var v1 = finObject.geometry.vertices[ finObject.geometry.faces[ faceIdx].b ];
+            var v2 = finObject.geometry.vertices[ finObject.geometry.faces[ faceIdx].c ];
+            var e1 = { x:v1.x - v0.x, y:v1.y - v0.y, z:0 };
+            var e2 = { x:v2.x - v0.x, y:v2.y - v0.y, z:0 };
+            var e3 = new THREE.Vector3();
+            e3.x = e1.y*e2.z - e1.z*e2.y;
+            e3.y = e1.z*e2.x - e1.x*e2.z;
+            e3.z = e1.x*e2.y - e1.y*e2.x;
+            var A = 0.5 * Math.sqrt(e3.x*e3.x + e3.y*e3.y + e3.z*e3.z);
+            finArea += A / 2;
+        }
+        document.getElementById("areaINPUT").innerHTML = finArea.toFixed( 2 ) + " square inches";
+    }
+
     function getFinMetrics()
     {
         finObject.geometry.computeBoundingBox();
@@ -96,6 +124,8 @@ function BLViewerAPI( cartCallback )
         document.getElementById("depthINPUT").value = finDepth.toFixed( 2 );
         document.getElementById("baseINPUT").value = finBase.toFixed( 2 );
         document.getElementById("rakeINPUT").value = finRake.toFixed( 2 );
+
+        computeProjectedFinArea();
     }
 
     function updateFinMetrics()
@@ -126,6 +156,8 @@ function BLViewerAPI( cartCallback )
         document.getElementById("depthINPUT").value = newFinDepth.toFixed( 2 );
         document.getElementById("baseINPUT").value = newFinBase.toFixed( 2 );
         document.getElementById("rakeINPUT").value = newFinRake.toFixed( 2 );
+
+        computeProjectedFinArea();
     }
 
     function computeRakeCoef( y )
@@ -197,7 +229,7 @@ function BLViewerAPI( cartCallback )
         currentConfig = new THREE.Group();
         scene.add( currentConfig );
 
-        LoadOBJ( currentTemplate + currentFoil, true );
+        LoadOBJ( currentTemplate + "_" + currentFoil, true );
         if( currentSystem != "None" )
             LoadOBJ( currentSystem );
     }
@@ -210,6 +242,13 @@ function BLViewerAPI( cartCallback )
         renderer.setSize(container.offsetWidth, container.offsetHeight);
     }
 
+    function updateFoilOptions()
+    {
+        document.getElementById("foilSELECT").options[ 0 ].disabled = !templatesLib[ currentTemplate].center;
+        document.getElementById("foilSELECT").options[ 1 ].disabled = !templatesLib[ currentTemplate].left;
+        document.getElementById("foilSELECT").options[ 2 ].disabled = !templatesLib[ currentTemplate].right;
+    }
+
     function createUI()
     {
         var menuArea = document.createElement('div');
@@ -219,19 +258,24 @@ function BLViewerAPI( cartCallback )
         // Add template drop list
         var templateDIV = document.createElement('div');
         templateDIV.className = "menu-item";
-        templateDIV.innerHTML = 'TEMPLATE ' +
-            '<select id="templateSELECT">'+
-                '<option value="Shortboard" selected>Shortboard</option>' +
-                '<option value="Longboard">Longboard</option>' +
-                '<option value="Nub">Knub</option>' +
-                '<option value="Pilot">Pilot</option>' +
-            '</select>';
+
+        var optionsHTML = '<select id="templateSELECT">';
+        for( var templateID in templatesLib )
+            optionsHTML += '<option value="' + templateID + '"' + (templatesLib[ templateID ].selected ? 'selected' : '') +'>' + templatesLib[ templateID ].name + '</option>';
+        optionsHTML += '</select>';
+        templateDIV.innerHTML = 'TEMPLATE ' + optionsHTML;
         menuArea.appendChild( templateDIV );
         var templateSELECT = document.getElementById("templateSELECT");
         templateSELECT.onchange = function( sel )
         {
             currentTemplate = this.options[this.selectedIndex].value;
+            // Select Center foil
+            document.getElementById("foilSELECT").options[ 2 ].selected = false;
+            document.getElementById("foilSELECT").options[ 1 ].selected = false;
+            document.getElementById("foilSELECT").options[ 0 ].selected = true;
+            currentFoil = document.getElementById("foilSELECT").options[ 0].value;
             loadCurrentConfig();
+            updateFoilOptions();
         };
         currentTemplate = templateSELECT.options[ templateSELECT.selectedIndex ].value;
 
@@ -259,6 +303,7 @@ function BLViewerAPI( cartCallback )
                 {
                     document.getElementById("materialSELECT").options[ 2 ].selected = false;
                     document.getElementById("materialSELECT").options[ 0 ].selected = true;
+                    currentMaterial = document.getElementById("materialSELECT").options[ 0 ].value;
                 }
             }
             loadCurrentConfig();
@@ -283,6 +328,7 @@ function BLViewerAPI( cartCallback )
             loadCurrentConfig();
         };
         currentFoil = foilSELECT.options[ foilSELECT.selectedIndex ].value;
+        updateFoilOptions();
 
         // Add material drop list
         var materialDIV = document.createElement('div');
@@ -344,7 +390,8 @@ function BLViewerAPI( cartCallback )
 
         var areaDIV = document.createElement('div');
         areaDIV.className = "menu-item";
-        areaDIV.innerHTML = 'AREA';
+        areaDIV.innerHTML = 'AREA' +
+        '<span id="areaINPUT" class="menu-slider"></span>';
         menuArea.appendChild( areaDIV );
 
         // Add ADD TO CART button
@@ -357,10 +404,22 @@ function BLViewerAPI( cartCallback )
         addToCart.innerHTML = "Add to Cart";
         addToCart.onclick = function()
         {
-            if( cartCallback )
-                cartCallback();
+            if( cartCallback ) {
+                var stlExporter = new THREE.STLExporter();
+                var stl = stlExporter.parse( scene );
+                cartCallback( stl );
+            }
         }
         footerDIV.appendChild( addToCart );
+    }
+
+    function loadCubeMap(name) {
+        var r = "textures/" + name + "/";
+        var urls = [r + "px.jpg", r + "nx.jpg",
+            r + "py.jpg", r + "ny.jpg",
+            r + "pz.jpg", r + "nz.jpg"];
+
+        return( THREE.ImageUtils.loadTextureCube(urls) );
     }
 
     function init() {
@@ -378,7 +437,7 @@ function BLViewerAPI( cartCallback )
         container.appendChild(renderer.domElement);
 
         var aspect = container.offsetWidth / container.offsetHeight;
-        camera = new THREE.PerspectiveCamera( 25, aspect, 0.01, 50 );
+        camera = new THREE.PerspectiveCamera( 25, aspect, 0.01, 200 );
         orbit = new THREE.OrbitControls( camera, renderer.domElement );
         orbit.autoRotateSpeed = 1.0;
         orbit.minPolarAngle = Math.PI/10; // radians
@@ -401,24 +460,29 @@ function BLViewerAPI( cartCallback )
 
         // Build materials library
         matLib[ "G10" ] = new THREE.MeshPhongMaterial({
+            transparent: true,
+            opacity: 0.8,
             color: 0x66B798,
             specular: 0x0C0C0C,
-            shininess: 20,
-            reflectivity: 0.2
+            shininess: 10,
+            reflectivity: 0.05,
+            envMap: loadCubeMap( "monastery-gray" )
         });
 
         matLib[ "HDME" ] = new THREE.MeshPhongMaterial({
-            color: 0xAAAAAA,
-            specular: 0x0C0C0C,
+            color: 0xEEEEEE,
+            specular: 0x050505,
             shininess: 80,
-            reflectivity: 0.8
+            reflectivity: 0.4,
+            envMap: loadCubeMap( "monastery-gray" )
         });
 
         matLib[ "BalticBirch" ] = new THREE.MeshPhongMaterial({
-            color: 0xEBCD91,
+            map: THREE.ImageUtils.loadTexture("textures/birchtexture.jpg" ),
+            color: 0xAAAAAA,
             specular: 0x0C0C0C,
-            shininess: 10,
-            reflectivity: 0.2
+            shininess: 50,
+            reflectivity: 0.3
         });
 
         loadCurrentConfig();

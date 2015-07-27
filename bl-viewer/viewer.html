@@ -9,6 +9,7 @@
 		<script src='three.js/build/three.min.js'></script>
 		<script src="three.js/examples/js/loaders/OBJLoader.js"></script>
 		<script src="three.js/examples/js/loaders/ColladaLoader.js"></script>
+		<script src="three.js/examples/js/exporters/STLExporter.js"></script>
 		<script src='InertialOrbitControls.js'></script>
 		<script src='three.js/examples/js/Detector.js'></script>
 	</head>
@@ -18,7 +19,7 @@
 
 		<script src='BLViewerAPI.js'></script>
 		<script>
-			var blViewerAPI = new BLViewerAPI( function()
+			var blViewerAPI = new BLViewerAPI( function( stl )
 			{
 				alert( "Add to cart" );
 			});
