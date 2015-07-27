@@ -1,4 +1,4 @@
-function BLViewerAPI( cartCallback )
+function BLViewerAPI( settings, cartCallback )
 {
     var templatesLib = [];
     templatesLib[ "Shortboard" ] = {name:"Shortboard", center:true, left:true, right:true, selected:true };
@@ -8,7 +8,7 @@ function BLViewerAPI( cartCallback )
     templatesLib[ "Pilot" ] = {name:"Pilot", center:true };
     templatesLib[ "Nub" ] = {name:"Nub", center:true, left:true, right:true };
 
-    console.log( "BLViewerAPI v1.3" );
+    console.log( "BLViewerAPI v1.4" );
 
     if (!Detector.webgl) Detector.addGetWebGLMessage();
 
@@ -427,7 +427,7 @@ function BLViewerAPI( cartCallback )
         scene = new THREE.Scene();
 
         container = document.getElementById('viewport');
-        setBackground( null );
+        setBackground( settings.background );
 
         createUI();
 
@@ -464,8 +464,8 @@ function BLViewerAPI( cartCallback )
             opacity: 0.8,
             color: 0x66B798,
             specular: 0x0C0C0C,
-            shininess: 10,
-            reflectivity: 0.05,
+            shininess: 40,
+            reflectivity: 0.1,
             envMap: loadCubeMap( "monastery-gray" )
         });
 

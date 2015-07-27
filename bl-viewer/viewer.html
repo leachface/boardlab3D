@@ -19,10 +19,14 @@
 
 		<script src='BLViewerAPI.js'></script>
 		<script>
-			var blViewerAPI = new BLViewerAPI( function( stl )
-			{
-				alert( "Add to cart" );
-			});
+			var blViewerAPI = new BLViewerAPI(
+					{
+						background:"UI/background2.png"
+					},
+					function( stl )
+					{
+						alert( "Add to cart" );
+					});
 		</script>
 	</body>
 </html>
