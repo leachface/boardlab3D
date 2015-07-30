@@ -8,11 +8,11 @@ function BLViewerAPI( settings, cartCallback )
     templatesLib[ "Pilot" ] = {name:"Pilot", center:true };
     templatesLib[ "Nub" ] = {name:"Nub", center:true, left:true, right:true };
 
-    console.log( "BLViewerAPI v1.4" );
+    console.log( "BLViewerAPI v1.5" );
 
     if (!Detector.webgl) Detector.addGetWebGLMessage();
 
-    var container, scene, camera, renderer, orbit, pointLight1, pointLight2, currentConfig = null, finObject;
+    var container, scene, camera, renderer, orbit, pointLight1, pointLight2, currentConfig = null, finObject, systemObject;
     var currentTemplate, currentSystem, currentFoil, currentMaterial;
     var finDepth = 0;
     var finBase = 0;
@@ -187,11 +187,27 @@ function BLViewerAPI( settings, cartCallback )
             // Set base
             rakeCoefficient = computeRakeCoef(vOrigin.y);
             v.x = vOrigin.x * baseScale + rakeOffset * rakeCoefficient;
+            v.z = vOrigin.z + zOffset;
         }
         finObject.geometry.verticesNeedUpdate = true;
 
         updateFinMetrics();
     }
+
+    function alignFinOnSystem()
+    {
+        systemObject.geometry.computeBoundingBox();
+        var systemBB = systemObject.geometry.boundingBox;
+        var zOffset = 0;
+        if( currentFoil == "Left")
+            zOffset = systemBB.min.z;
+        else if( currentFoil == "Right")
+            zOffset = systemBB.max.z;
+        for( var vertexIdx = 0; vertexIdx < finObject.geometry.vertices.length; vertexIdx++ )
+            finObject.geometry.vertices[vertexIdx].z += zOffset;
+        finObject.geometry.verticesNeedUpdate = true;
+    }
+
 
     function LoadOBJ( modelName, isFin ) {
         // model
@@ -216,6 +232,11 @@ function BLViewerAPI( settings, cartCallback )
                 finObject.geometry = new THREE.Geometry().fromBufferGeometry( finObject.geometry );
                 getFinMetrics();
             }
+            else
+                systemObject = object.children[ 0 ];
+
+            if( finObject != null && systemObject != null )
+                alignFinOnSystem();
         }, onProgress, onError);
     }
 
@@ -229,6 +250,8 @@ function BLViewerAPI( settings, cartCallback )
         currentConfig = new THREE.Group();
         scene.add( currentConfig );
 
+        finObject = null;
+        systemObject = null;
         LoadOBJ( currentTemplate + "_" + currentFoil, true );
         if( currentSystem != "None" )
             LoadOBJ( currentSystem );
