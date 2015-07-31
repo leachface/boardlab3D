@@ -8,7 +8,7 @@ function BLViewerAPI( settings, cartCallback )
     templatesLib[ "Pilot" ] = {name:"Pilot", center:true };
     templatesLib[ "Nub" ] = {name:"Nub", center:true, left:true, right:true };
 
-    console.log( "BLViewerAPI v1.5" );
+    console.log( "BLViewerAPI v1.6" );
 
     if (!Detector.webgl) Detector.addGetWebGLMessage();
 
@@ -187,7 +187,6 @@ function BLViewerAPI( settings, cartCallback )
             // Set base
             rakeCoefficient = computeRakeCoef(vOrigin.y);
             v.x = vOrigin.x * baseScale + rakeOffset * rakeCoefficient;
-            v.z = vOrigin.z + zOffset;
         }
         finObject.geometry.verticesNeedUpdate = true;
 
